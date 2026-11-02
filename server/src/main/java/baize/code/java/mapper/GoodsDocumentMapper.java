@@ -1,0 +1,9 @@
+package baize.code.java.mapper;
+
+import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import baize.code.java.entity.GoodsDocument;
+import org.apache.ibatis.annotations.Mapper;
+
+@Mapper
+public interface GoodsDocumentMapper extends BaseMapper<GoodsDocument> {
+}

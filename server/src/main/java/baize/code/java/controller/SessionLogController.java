@@ -1,0 +1,68 @@
+package baize.code.java.controller;
+
+import baize.code.java.common.Result;
+import baize.code.java.entity.SessionLog;
+import baize.code.java.service.SessionLogService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequiredArgsConstructor
+@RequestMapping("/sessionLog")
+public class SessionLogController {
+    private final SessionLogService sessionLogService;
+
+    /**
+     * 用户阅读商户的消息，修改为已读状态
+     * @param sessionId 会话id
+     * @param userId 用户id
+     * @return 修改结果
+     */
+    @PutMapping("/readCtMessage")
+    public Result<?> readCtMessage(@RequestParam("sessionId") Integer sessionId, @RequestParam("userId") Integer userId) {
+        return sessionLogService.readCtMessage(sessionId, userId);
+    }
+
+    /**
+     * 商户阅读用户的消息，修改为已读状态
+     * @param sessionId 会话id
+     * @param ctId 商户id
+     * @return 修改结果
+     */
+    @PutMapping("/readUserMessage")
+    public Result<?> readUserMessage(@RequestParam("sessionId") Integer sessionId, @RequestParam("ctId") Integer ctId) {
+        return sessionLogService.readUserMessage(sessionId, ctId);
+    }
+
+    /**
+     *  获取会话窗口中的消息，以时间 顺序排序
+     * @param sessionId  会话id
+     * @return 消息列表
+     */
+    @GetMapping("/getWindowMessage")
+    public Result<List<SessionLog>> getWindowMessage(@RequestParam("sessionId") Integer sessionId) {
+        return sessionLogService.getWindowMessage(sessionId);
+    }
+
+    /**
+     * 用户获取该session的未读消息数量
+     * @param sessionId  会话id
+     * @return 未读消息数量
+     */
+    @GetMapping("/userGetUnreadMessageCount")
+    public Result<Integer> userGetUnreadMessageCount(@RequestParam("sessionId") Integer sessionId) {
+        return sessionLogService.userGetUnreadMessageCount(sessionId);
+    }
+
+    /**
+     * 商户获取该session的未读消息数量
+     * @param sessionId  会话id
+     * @return 未读消息数量
+     */
+    @GetMapping("/ctGetUnreadMessageCount")
+    public Result<Integer> ctGetUnreadMessageCount(@RequestParam("sessionId") Integer sessionId) {
+        return sessionLogService.ctGetUnreadMessageCount(sessionId);
+    }
+}
