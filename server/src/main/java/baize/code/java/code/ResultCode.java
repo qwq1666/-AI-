@@ -6,7 +6,8 @@ import lombok.Getter;
 public enum ResultCode {
     SUCCESS(200, "成功"),
     ADD_SUCCESS(200, "添加成功"),
-
+    UPLOAD_DOCUMENT_ERROR(601, "上传文档失败"),
+    DELETE_DOCUMENT_ERROR(602, "文档不存在"),
 
     FAIL(500, "失败"),
     NOT_FOUND(404, "未找到"),
