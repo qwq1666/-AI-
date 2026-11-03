@@ -13,4 +13,5 @@ public interface RoleService extends IService<Role> {
 
     Result<?> detailsByCtId(Integer ctId);
 
+    Role getRoleByCtId(Integer ctId);
 }

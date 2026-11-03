@@ -1,6 +1,7 @@
 package baize.code.java.service.impl;
 
 import baize.code.java.service.RoleService;
+import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import baize.code.java.code.ResultCode;
 import baize.code.java.common.Result;
@@ -10,6 +11,8 @@ import baize.code.java.utils.KeyUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
+
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class RoleServiceImpl extends ServiceImpl<RoleMapper, Role> implements RoleService {
@@ -62,5 +65,23 @@ public class RoleServiceImpl extends ServiceImpl<RoleMapper, Role> implements Ro
             return Result.error(ResultCode.NOT_FOUND).setMessage("该商户没有AI客服");
         }
         return Result.success(ResultCode.SUCCESS, role);
+    }
+
+    @Override
+    public Role getRoleByCtId(Integer ctId) {
+        //直接查数据库
+        //查询redis
+        String json = stringRedisTemplate.opsForValue().getAndExpire(KeyUtils.redisKeyUtils(key,ctId),timeout, TimeUnit.MINUTES);
+
+        if(json!=null){
+            return JSONUtil.toBean(json,Role.class);
+        }
+        //查数据库 --- 放缓存
+        Role role = lambdaQuery().eq(Role::getCtId, ctId).one();
+        if(role==null){
+            return  null; //没有角色
+        }
+        stringRedisTemplate.opsForValue().set(KeyUtils.redisKeyUtils(key,ctId),JSONUtil.toJsonStr(role),timeout, TimeUnit.MINUTES);
+        return role;
     }
 }
