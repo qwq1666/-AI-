@@ -1,7 +1,11 @@
 package baize.code.java.service.impl;
 
 import baize.code.java.service.SessionLogService;
+import baize.code.java.utils.KeyUtils;
+import baize.code.java.utils.TypeConversion;
+import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import baize.code.java.code.ResultCode;
 import baize.code.java.common.Result;
@@ -10,11 +14,14 @@ import baize.code.java.entity.SessionLog;
 import baize.code.java.mapper.SessionLogMapper;
 import baize.code.java.mapper.SessionMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.ai.chat.messages.Message;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 @Service
 @RequiredArgsConstructor
@@ -97,5 +104,46 @@ public class SessionLogServiceImpl extends ServiceImpl<SessionLogMapper, Session
                         .eq(SessionLog::getType, SessionLog.Type.USER)
                         .count().intValue()
         );
+    }
+
+    @Override
+    public List<SessionLog> tryGetSessionLog(String conversationId) {
+        //  从数据库中获取最近的10条记录 【分页查询】
+        return lambdaQuery().eq(SessionLog::getSessionId, conversationId)
+                .orderByDesc(SessionLog::getTimestamp)
+                .page(new Page<>(1, memoryLength))
+                .getRecords();
+    }
+
+    @Override
+    public void add(String conversationId, List<Message> messages) {
+        //转换为SessionLog
+        List<SessionLog> sessionLogList = messages.stream().map(message -> {
+            SessionLog.Type type = TypeConversion.messageToSessionType(message.getMessageType());
+            return SessionLog.builder()
+                    .sessionId(Integer.valueOf(conversationId))
+                    .content(message.getText())
+                    .type(type)
+                    .build();
+        }).toList();
+        saveBatch(sessionLogList);
+        addToRedis(conversationId,sessionLogList);
+    }
+
+    @Override
+    public void addToRedis(String conversationId, List<SessionLog> sessionLogs) {
+        if (sessionLogs==null || sessionLogs.isEmpty()){
+            return;
+        }
+        stringRedisTemplate.opsForList().rightPushAll(
+                KeyUtils.redisKeyUtils(memoryKey,conversationId),
+                sessionLogs.stream().map(JSONUtil::toJsonStr).toList()
+        );
+        stringRedisTemplate.expire(KeyUtils.redisKeyUtils(memoryKey,conversationId),timeout, TimeUnit.MINUTES);
+        //检查redis中list的长度 如果超过长度则将旧数据删除
+        if(Optional.ofNullable(stringRedisTemplate.opsForList().size(KeyUtils.redisKeyUtils(memoryKey,conversationId)))
+                .orElse(0L) > memoryLength){
+            stringRedisTemplate.opsForList().trim(KeyUtils.redisKeyUtils(memoryKey,conversationId),-memoryLength,-1);
+        }
     }
 }
