@@ -21,7 +21,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 @Component
-public class CustomizationMemoryAdvise implements BaseChatMemoryAdvisor {
+public class CustomizationMemoryAdvisor implements BaseChatMemoryAdvisor {
     @Resource
     private CustomizationMemory customizationMemory;
     @Resource

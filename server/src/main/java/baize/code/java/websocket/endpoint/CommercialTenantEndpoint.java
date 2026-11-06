@@ -2,6 +2,8 @@ package baize.code.java.websocket.endpoint;
 
 import baize.code.java.config.ChatMessageCoder;
 import baize.code.java.entity.SessionLog;
+import baize.code.java.mapper.SessionLogMapper;
+import baize.code.java.utils.SessionFind;
 import baize.code.java.websocket.message.ChatMessage;
 import jakarta.websocket.*;
 import jakarta.websocket.server.PathParam;
@@ -15,9 +17,16 @@ import java.util.concurrent.ConcurrentHashMap;
 @ServerEndpoint(value = "/commercialTenant/chat/{ctId}",decoders = ChatMessageCoder.class, encoders = ChatMessageCoder.class)
 public class CommercialTenantEndpoint implements WebSocketEndpoint {
     private static final ConcurrentHashMap<Integer, CommercialTenantEndpoint> commercialTenantEndpointConcurrentEndpointPool = new ConcurrentHashMap<>();
+    private final SessionLogMapper sessionLogMapper;
+    private final SessionFind sessionFind;
 
     private Session session;
     private Integer ctId;
+
+    public CommercialTenantEndpoint(SessionLogMapper sessionLogMapper, SessionFind sessionFind) {
+        this.sessionLogMapper = sessionLogMapper;
+        this.sessionFind = sessionFind;
+    }
 
     @OnOpen
     public void onOpen(Session session, @PathParam("ctId") Integer ctId) {
@@ -33,9 +42,18 @@ public class CommercialTenantEndpoint implements WebSocketEndpoint {
         }
     }
 
-    @OnMessage
+    @OnMessage //人工客服发送消息触发
     public void onMessage(ChatMessage message, Session session) throws EncodeException, IOException {
-
+        message.setType(getEndpointType());
+        sessionLogMapper.insert(SessionLog.builder()
+                .type(message.getType())
+                .sessionId(message.getSessionId())
+                .content(message.getMessage())
+                .build());
+        UserServiceEndpoint userEndpoint = sessionFind.getUserEndpointById(message.getSessionId());
+        if (userEndpoint!=null){
+            userEndpoint.sendMessage(message);
+        }
     }
 
     @OnError
