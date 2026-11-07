@@ -8,6 +8,7 @@ import baize.code.java.websocket.message.ChatMessage;
 import jakarta.websocket.*;
 import jakarta.websocket.server.PathParam;
 import jakarta.websocket.server.ServerEndpoint;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 // TODO:006
@@ -17,15 +18,17 @@ import java.util.concurrent.ConcurrentHashMap;
 @ServerEndpoint(value = "/commercialTenant/chat/{ctId}",decoders = ChatMessageCoder.class, encoders = ChatMessageCoder.class)
 public class CommercialTenantEndpoint implements WebSocketEndpoint {
     private static final ConcurrentHashMap<Integer, CommercialTenantEndpoint> commercialTenantEndpointConcurrentEndpointPool = new ConcurrentHashMap<>();
-    private final SessionLogMapper sessionLogMapper;
-    private final SessionFind sessionFind;
+    // 依赖由 Spring 初始化，连接状态仍保存在各端点实例中。
+    private static SessionLogMapper sessionLogMapper;
+    private static SessionFind sessionFind;
 
     private Session session;
     private Integer ctId;
 
-    public CommercialTenantEndpoint(SessionLogMapper sessionLogMapper, SessionFind sessionFind) {
-        this.sessionLogMapper = sessionLogMapper;
-        this.sessionFind = sessionFind;
+    @Autowired
+    public void setDependencies(SessionLogMapper sessionLogMapper, SessionFind sessionFind) {
+        CommercialTenantEndpoint.sessionLogMapper = sessionLogMapper;
+        CommercialTenantEndpoint.sessionFind = sessionFind;
     }
 
     @OnOpen

@@ -5,6 +5,7 @@ import baize.code.java.executor.GlobalTreadPool;
 import baize.code.java.service.SessionLogService;
 import baize.code.java.utils.KeyUtils;
 import baize.code.java.utils.TypeConversion;
+import cn.hutool.json.JSONUtil;
 import jakarta.annotation.Resource;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.messages.Message;
@@ -44,6 +45,13 @@ public class CustomizationMemory implements ChatMemory {
             GlobalTreadPool.executor.execute(()->sessionLogService.addToRedis(conversationId,sessionLogs));
             messages = new ArrayList<>(sessionLogs.size());
             for (SessionLog sessionLog : sessionLogs) {
+                Message message = TypeConversion.sessionToMessage(sessionLog.getType(), sessionLog.getContent());
+                messages.add(message);
+            }
+        }else{
+            messages = new ArrayList<>(range.size());
+            for (String json : range) {
+                SessionLog sessionLog = JSONUtil.toBean(json, SessionLog.class);
                 Message message = TypeConversion.sessionToMessage(sessionLog.getType(), sessionLog.getContent());
                 messages.add(message);
             }

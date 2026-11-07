@@ -1,6 +1,9 @@
 package baize.code.java.controller;
 
+import baize.code.java.code.ResultCode;
 import baize.code.java.common.Result;
+import baize.code.java.service.GoodsDocumentService;
+import jakarta.annotation.Resource;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -9,7 +12,8 @@ import org.springframework.web.multipart.MultipartFile;
 @RequestMapping("/goodsDocument")
 @RequiredArgsConstructor
 public class GoodsDocumentController {
-
+    @Resource
+    private GoodsDocumentService goodsDocumentService;
     /**
      * TODO:001文档上传
      * @param file 文档
@@ -18,7 +22,8 @@ public class GoodsDocumentController {
      */
     @PostMapping("/upload")
     public Result<?> upload(@RequestBody MultipartFile file, Integer goodsId) {
-        return null;
+        Result<?> upload = goodsDocumentService.upload(file, goodsId);
+        return Result.success(ResultCode.ADD_SUCCESS,upload.getData());
     }
 
     /**
@@ -28,6 +33,7 @@ public class GoodsDocumentController {
      */
     @DeleteMapping("/delete")
     public Result<?> delete(@RequestParam Integer id) {
-        return null;
+        Result<?> delete = goodsDocumentService.delete(id);
+        return Result.success(ResultCode.DELETE_SUCCESS,delete.getData());
     }
 }

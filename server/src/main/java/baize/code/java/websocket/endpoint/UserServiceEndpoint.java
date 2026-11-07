@@ -10,6 +10,7 @@ import baize.code.java.entity.SessionLog;
 import jakarta.websocket.*;
 import jakarta.websocket.server.PathParam;
 import jakarta.websocket.server.ServerEndpoint;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -19,19 +20,21 @@ import java.util.concurrent.ConcurrentHashMap;
 @ServerEndpoint(value = "/user/chat/{userId}", decoders = ChatMessageCoder.class, encoders = ChatMessageCoder.class)
 public class UserServiceEndpoint implements WebSocketEndpoint {
     private static final ConcurrentHashMap<Integer, UserServiceEndpoint> userEndpointPool = new ConcurrentHashMap<>();
-    private final SessionService sessionService;
-    private final AIService aIService;
-    private final SessionFind sessionFind;
-    private final SessionLogMapper sessionLogMapper;
+    // Spring 注入共享依赖；Tomcat 通过无参构造为每个连接创建端点。
+    private static SessionService sessionService;
+    private static AIService aIService;
+    private static SessionFind sessionFind;
+    private static SessionLogMapper sessionLogMapper;
 
     private Session session;
     private Integer userId;
 
-    public UserServiceEndpoint(SessionService sessionService, AIService aIService, SessionFind sessionFind, SessionLogMapper sessionLogMapper) {
-        this.sessionService = sessionService;
-        this.aIService = aIService;
-        this.sessionFind = sessionFind;
-        this.sessionLogMapper = sessionLogMapper;
+    @Autowired
+    public void setDependencies(SessionService sessionService, AIService aIService, SessionFind sessionFind, SessionLogMapper sessionLogMapper) {
+        UserServiceEndpoint.sessionService = sessionService;
+        UserServiceEndpoint.aIService = aIService;
+        UserServiceEndpoint.sessionFind = sessionFind;
+        UserServiceEndpoint.sessionLogMapper = sessionLogMapper;
     }
 
     @OnOpen
@@ -51,6 +54,7 @@ public class UserServiceEndpoint implements WebSocketEndpoint {
     // TODO:005
     @OnMessage//用户发送消息触发
     public void onMessage(ChatMessage message, Session session) throws EncodeException, IOException, IllegalAccessException {
+        message.setType(getEndpointType());
         //开启会话
         baize.code.java.entity.Session chatSession = sessionService.find(message, userId, this);
         switch (chatSession.getConversationStatus()){
